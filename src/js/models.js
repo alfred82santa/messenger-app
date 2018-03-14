@@ -109,7 +109,7 @@ Models.Room = BaseModel.extend({
   },
   retrieveMessages: function (app) {
     $.ajax({
-      url: app.get('backendUrl') + '/rest/room/' + this.id + '/message',
+      url: 'https://' + app.get('backendUrl') + '/rest/room/' + this.id + '/message',
       method: 'GET'
     }).done((data) => {
       for (let idx in data.messages) {

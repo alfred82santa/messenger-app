@@ -40,7 +40,7 @@ export default class WS {
 
     $(this._ws).on('close', function (event) {
       $(self).trigger('close');
-      _.defer(self.connect);
+      _.defer(self.connect.bind(self));
     })
 
     $(this._ws).on('message', function (event) {
@@ -51,7 +51,7 @@ export default class WS {
 
   constructor(url: string) {
     this._nextId = 0;
-    this.url = url;
+    this.url = 'wss://' + url;
     this.connect();
   }
 }
