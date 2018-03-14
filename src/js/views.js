@@ -203,7 +203,6 @@ class RoomListView extends BaseBackboneCollectionComponent {
 export default class App extends BaseBackboneModelComponent {
 
   setRoom(room) {
-    console.log(this);
     this.chatView.setRoom(room);
   }
 

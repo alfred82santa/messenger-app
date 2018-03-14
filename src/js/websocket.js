@@ -34,11 +34,12 @@ export default class WS {
     let self = this;
 
     $(this._ws).on('open', function (event) {
+      console.log('Open websocket');
       $(self).trigger('open');
     })
 
-
     $(this._ws).on('close', function (event) {
+      console.log('Close websocket');
       $(self).trigger('close');
       _.defer(self.connect.bind(self));
     })
