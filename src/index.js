@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import App from './js/views.js';
 import Models from './js/models.js';
 import 'bootstrap/dist/css/bootstrap.css';
-import './styles/app.scss';
+import './styles/client.css'
 
 // ========================================
 

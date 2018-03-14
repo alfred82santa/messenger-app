@@ -72,7 +72,7 @@ class RoomMessageView extends BaseBackboneCollectionComponent {
   }
   render() {
     return (
-      <div className="chat-view">
+      <div className="chat">
       {this.renderMessages()}
       </div>
     )
@@ -83,6 +83,7 @@ class ChatViewTitle extends BaseBackboneModelComponent {
   render() {
     return (
       <div className={[
+        "chat-head",
         "chat-view-title",
         "chat-view-title-id-" + this.props.model.id
       ].join(' ')}>
@@ -208,22 +209,29 @@ export default class App extends BaseBackboneModelComponent {
 
   render() {
     return (
-      <div className="app">
-        <Container>
-          <Row>
-            <Col>
-              <Row className="d-flex align-items-stretch flex-column flex-nowrap menubar">
-                <div> sdsdsds sd sds dsd sdsds ds ds ds </div>
-                <div> sdsdsds sd sds dsd sdsds ds ds ds </div>
-                <RoomListView collection={this.props.model.get('rooms')} onSetRoom={(item) => this.setRoom(item)} />
-              </Row>
-            </Col>
-            <Col>
-              <ChatView ref={(chatView) => this.chatView = chatView}/>
-            </Col>
-          </Row>
-        </Container>
-      </div>
+        <div className='app'>
+          <div className="green-background"></div>
+          <div className="wrap">
+            <section className="left">
+                <div className="profile me">
+                    <div className="profile-data row"></div>
+                </div>
+                <div className="contact-list">
+                  <RoomListView collection={this.props.model.get('rooms')} onSetRoom={(item) => this.setRoom(item)} />
+                </div>
+            </section>
+
+            <section className="right">
+                <ChatView ref={(chatView) => this.chatView = chatView}/>
+                <div className="information"></div>
+                <div className="wrap-message">
+                    <div className="message">
+                        <input type="text" className="input-message" placeholder="Escribe tu mensaje"/>
+                    </div>
+                </div>
+            </section>
+          </div>
+        </div>
     );
   }
 }
