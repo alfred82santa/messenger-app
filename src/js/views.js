@@ -131,6 +131,11 @@ class ChatView extends React.Component {
       <Row className="d-flex align-items-stretch flex-column flex-nowrap">
         <ChatViewTitle className="align-self-start" model={this.state.room} />
         <RoomMessageView className="align-self-stretch" collection={this.state.room.get('messages')} />
+        <div className="wrap-message">
+        <div className="message">
+            <input type="text" className="input-message" placeholder="Escribe tu mensaje"/>
+        </div>
+      </div>
       </Row>
     )
   }
@@ -223,11 +228,6 @@ export default class App extends BaseBackboneModelComponent {
             <section className="right">
                 <ChatView ref={(chatView) => this.chatView = chatView}/>
                 <div className="information"></div>
-                <div className="wrap-message">
-                    <div className="message">
-                        <input type="text" className="input-message" placeholder="Escribe tu mensaje"/>
-                    </div>
-                </div>
             </section>
           </div>
         </div>
