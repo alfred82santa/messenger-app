@@ -46,7 +46,6 @@ export default class WS {
 
     $(this._ws).on('message', function (event) {
       let msg = JSON.parse(event.originalEvent.data);
-      console.log('Message in websocket: ' + event.originalEvent.data);
       $(self).trigger('message', msg);
     })
   }

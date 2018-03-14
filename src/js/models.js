@@ -156,7 +156,7 @@ Models.RoomCollection = BaseModule.extend({
   start: function (app) {
     var self = this;
     $.ajax({
-      url: 'https://' + app.get('backendUrl') + '/rest/room?limit=3',
+      url: 'https://' + app.get('backendUrl') + '/rest/room?limit=20',
       method: 'GET'
     }).done((data) => {
       for (let idx in data.rooms) {
