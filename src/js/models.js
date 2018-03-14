@@ -94,12 +94,19 @@ Models.Message = BaseModel.extend({
     delete model.attachmentsSnapshots;
     model.attachments = attachments;
 
+    // Workaround: datetime must come as timestamps.
+    let d = model.postTimestamp.split(" ");
+    d[0] = d[0].split('-').reverse().join('-');
+    d = Date.parse(d.join('T'));
+    model.sorting = -d;
+
     return new this(model);
   }
 });
 
 Models.MessageCollection = BaseModelCollection.extend({
-  model: Models.Message
+  model: Models.Message,
+  comparator: 'sorting'
 });
 
 Models.Room = BaseModel.extend({
@@ -109,7 +116,7 @@ Models.Room = BaseModel.extend({
   },
   retrieveMessages: function (app) {
     $.ajax({
-      url: 'https://' + app.get('backendUrl') + '/rest/room/' + this.id + '/message',
+      url: 'https://' + app.get('backendUrl') + '/rest/room/' + this.id + '/message?limit=20',
       method: 'GET'
     }).done((data) => {
       for (let idx in data.messages) {
@@ -142,14 +149,14 @@ Models.RoomCollection = BaseModule.extend({
   dispatch: function (app, method, params) {
     switch(method) {
         case 'message.received':
-          app.get('messages').parseModel(params.message);
+          app.get('messages').parseModel(app, params.message);
           break;
     }
   },
   start: function (app) {
     var self = this;
     $.ajax({
-      url: 'https://messenger-hub-dev.apps-dev.tid.es/rest/room',
+      url: 'https://' + app.get('backendUrl') + '/rest/room?limit=3',
       method: 'GET'
     }).done((data) => {
       for (let idx in data.rooms) {
@@ -177,7 +184,6 @@ Models.Contact = BaseModel.extend({
 Models.ContactCollection = BaseModule.extend({
     model: Models.Contact,
     createByPeer: function (app, peer) {
-      console.log(peer);
       return this.parseModel(app, {
         id: peer.id,
         nickName: peer.nickName
@@ -245,18 +251,19 @@ Models.App = Backbone.Model.extend({
     })
   },
 
-  dispatch: function (rmc) {
-    let res = rmc.method.split('.', 1);
-    switch(res[0]) {
+  dispatch: function (sender, rmc) {
+    let res = rmc.method.split('.');
+
+    switch(res.shift()) {
       case "room":
-        this.get('rooms').dispatch(this, res[1], rmc.params);
+        this.get('rooms').dispatch(this, res.join('.'), rmc.params);
         break;
     }
   },
 
   start: function () {
     this.set('websocket', new WS(this.get('backendUrl') + '/websocket'));
-    $(this.get('websocket')).on('message', this.dispatch);
+    $(this.get('websocket')).on('message', this.dispatch.bind(this));
     this.get('rooms').start(this);
   }
 });
