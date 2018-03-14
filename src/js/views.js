@@ -72,7 +72,7 @@ class RoomMessageView extends BaseBackboneCollectionComponent {
   }
   render() {
     return (
-      <div className="chat-view">
+      <div className="chat">
       {this.renderMessages()}
       </div>
     )
@@ -83,6 +83,7 @@ class ChatViewTitle extends BaseBackboneModelComponent {
   render() {
     return (
       <div className={[
+        "chat-head",
         "chat-view-title",
         "chat-view-title-id-" + this.props.model.id
       ].join(' ')}>
@@ -221,18 +222,8 @@ export default class App extends BaseBackboneModelComponent {
             </section>
 
             <section className="right">
-                <div className="chat-head">
-                    <img alt="profilepicture"/>
-                    <div class="chat-name">
-                        <h1 className="font-name"></h1>
-                    </div>
-                </div>
-                <div className="wrap-chat">
-                    <div className="chat">
-                      <ChatView ref={(chatView) => this.chatView = chatView}/>
-                    </div>
-                    <div className="information"></div>
-                </div>
+                <ChatView ref={(chatView) => this.chatView = chatView}/>
+                <div className="information"></div>
                 <div className="wrap-message">
                     <div className="message">
                         <input type="text" className="input-message" placeholder="Escribe tu mensaje"/>
