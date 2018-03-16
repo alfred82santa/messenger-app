@@ -11,7 +11,7 @@ export default class WS {
     if (rmc.referenceId === undefined) {
         rmc.referenceId = this.getNextId();
     }
-
+    console.log(rmc);
     this._ws.send(JSON.stringify(rmc));
     $(this).trigger('post', rmc);
   }
@@ -19,7 +19,7 @@ export default class WS {
   sendCommand(command, params) {
     let cmd = {
         "method": command,
-        "referenceId": this.get_next_id()
+        "referenceId": this.getNextId()
     };
 
     if (params !== undefined) {

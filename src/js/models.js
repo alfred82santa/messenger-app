@@ -23,6 +23,7 @@ var BaseModelCollection = Backbone.Collection.extend({
     } else {
       modelOriginal = this.model.parseModel(app, model);
       this.add(modelOriginal);
+      modelOriginal.on('change:sorting', () => this.sort());
     }
 
     return modelOriginal;
@@ -98,7 +99,7 @@ Models.Message = BaseModel.extend({
     let d = model.postTimestamp.split(" ");
     d[0] = d[0].split('-').reverse().join('-');
     d = Date.parse(d.join('T'));
-    model.sorting = -d;
+    model.sorting = d;
 
     return new this(model);
   }
@@ -113,6 +114,14 @@ Models.Room = BaseModel.extend({
   initialize: function() {
     this.set('messages', new Models.MessageCollection());
     this.set('peers', new Models.PeerCollection());
+
+    let self = this;
+    this.get('messages').on('add', function(item) {
+      if (-self.get('sorting') < item.get('sorting')) {
+        self.set('sorting', -item.get('sorting'));
+        self.set('lastMessageTimestamp', item.get('postTimestamp'));
+      }
+    });
   },
   retrieveMessages: function (app) {
     $.ajax({
@@ -123,15 +132,25 @@ Models.Room = BaseModel.extend({
         app.get('messages').parseModel(app, data.messages[idx]);
       }
     });
+  },
+  sendText: function(text) {
+    this.get('app').get('websocket').sendCommand('account.account_service.room.message.post', {
+      'text': text,
+      'account_id': this.get('account').get('id'),
+      'account_service_id': this.get('connectors').findWhere({'serviceType': 'session'}).get('id'),
+      'type': 'message',
+      'room_id': this.get('id')
+    });
   }
 }, {
   parseModel: function (app, model) {
     model.account = app.get('accounts').parseModel(app, model.accountSnapshot);
     delete model.accountSnapshot;
 
-    model.connectors = model.accountServicesSnapshots.map(function(item) {
+    model.connectors = new Models.ConnectorCollection();
+    model.connectors.add(model.accountServicesSnapshots.map(function(item) {
       return app.get('connectors').parseModel(app, item);
-    });
+    }));
     delete model.accountServicesSnapshots;
 
     let peers = new Models.PeerCollection();
@@ -139,6 +158,13 @@ Models.Room = BaseModel.extend({
       peers.parseModel(app, model.peers[idx]);
     }
     model.peers = peers;
+    model.app = app;
+
+    // Workaround: datetime must come as timestamps.
+    let d = model.lastMessageTimestamp.split(" ");
+    d[0] = d[0].split('-').reverse().join('-');
+    d = Date.parse(d.join('T'));
+    model.sorting = -d;
 
     return new this(model);
   }
@@ -146,17 +172,21 @@ Models.Room = BaseModel.extend({
 
 Models.RoomCollection = BaseModule.extend({
   model: Models.Room,
+  comparator: 'sorting',
+
   dispatch: function (app, method, params) {
     switch(method) {
         case 'message.received':
           app.get('messages').parseModel(app, params.message);
           break;
+        default:
+          console.log('Unknown methood: ' + method);
     }
   },
   start: function (app) {
     var self = this;
     $.ajax({
-      url: 'https://' + app.get('backendUrl') + '/rest/room?limit=20',
+      url: 'https://' + app.get('backendUrl') + '/rest/room',
       method: 'GET'
     }).done((data) => {
       for (let idx in data.rooms) {
@@ -258,6 +288,8 @@ Models.App = Backbone.Model.extend({
       case "room":
         this.get('rooms').dispatch(this, res.join('.'), rmc.params);
         break;
+        default:
+          console.log('Unknown methood: ' + rmc.method);
     }
   },
 
