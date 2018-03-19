@@ -206,14 +206,15 @@ class UserInfo extends BaseBackboneModelComponent {
   }
 }
 
-class UserMeInfo extends BaseBackboneModelComponent {
+class UserMeInfo extends React.Component {
   render() {
     return (
-      <div className={[
-        "user-me-info",
-        "user-me-info-id-" + this.props.model.id
-      ].join(' ')}>
-      <p>{this.props.model.get("userName")}</p>
+      <div className={"profile me"}>
+          <div className={"profile-data row"}>
+              <img className={"logo col-xs-4"} src={"/src/assets/logo.png"}/>
+              {/*TODO use this.props.model.get("UserName") instead of the hardocded name as soon as BE provides it*/}
+              <h3 className={"company-name cols-xs-4"}>Farmacia Maragall 177</h3>
+          </div>
       </div>
     )
   }
@@ -246,9 +247,7 @@ export default class App extends BaseBackboneModelComponent {
           <div className="green-background"></div>
           <div className="wrap">
             <section className="left">
-                <div className="profile me">
-                    <div className="profile-data row"></div>
-                </div>
+                <UserMeInfo/>
                 <div className="contact-list">
                   <RoomListView collection={this.props.model.get('rooms')} onSetRoom={(item) => this.setRoom(item)} />
                 </div>
