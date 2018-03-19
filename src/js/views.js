@@ -44,7 +44,8 @@ class Message extends BaseBackboneModelComponent {
     return (
       <div className={[
         "message-inner",
-        "message-inner-id-" + this.props.model.id
+        "message-inner-id-" + this.props.model.get('id'),
+        this.props.model.get('sender')? "service-type-" + this.props.model.get('sender').get('serviceType'):""
       ].join(' ')}>
       <p>{this.props.model.get("text")}</p>
       </div>

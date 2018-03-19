@@ -40,8 +40,9 @@ var BaseModule = BaseModelCollection.extend({
 
 Models.Peer = BaseModel.extend({}, {
   parseModel: function (app, model) {
-    let contact = app.get('contacts').createByPeer(app, model);
-    model.contact = contact;
+    model.contact = app.get('contacts').getContactByPeer(app, model);
+    model.connectorId = model.accountServiceId;
+    delete model.accountServiceId;
     return new this(model);
   }
 });
@@ -69,7 +70,7 @@ Models.Message = BaseModel.extend({
 }, {
   parseModel: function (app, model) {
     model.room = app.get('rooms').parseModel(app, model.roomSnapshot);
-    delete model.roomSnapshot;
+    delete model.roomSnapshot.senderSnapshot;
 
     model.messageRefs = model.messageSnapshotRefs.map((item => {
       return app.get('messages').parseModel(item);
@@ -77,7 +78,10 @@ Models.Message = BaseModel.extend({
     delete model.messageSnapshotRefs;
 
     if (model.senderSnapshot) {
-      model.sender = Models.Peer.parseModel(app, model.senderSnapshot);
+      model.sender = model.room.get('peers').findWhere({
+        id: model.senderSnapshot.id,
+        connectorId: model.senderSnapshot.accountServiceId
+      });
       delete model.senderSnapshot;
     }
 
@@ -94,6 +98,8 @@ Models.Message = BaseModel.extend({
     }
     delete model.attachmentsSnapshots;
     model.attachments = attachments;
+
+
 
     // Workaround: datetime must come as timestamps.
     let d = model.postTimestamp.split(" ");
@@ -113,7 +119,6 @@ Models.MessageCollection = BaseModelCollection.extend({
 Models.Room = BaseModel.extend({
   initialize: function() {
     this.set('messages', new Models.MessageCollection());
-    this.set('peers', new Models.PeerCollection());
 
     let self = this;
     this.get('messages').on('add', function(item) {
@@ -155,6 +160,8 @@ Models.Room = BaseModel.extend({
 
     let peers = new Models.PeerCollection();
     for (let idx in model.peers) {
+      let connector = model.connectors.findWhere({id: model.peers[idx].accountServiceId});
+      model.peers[idx].serviceType = connector.get('serviceType');
       peers.parseModel(app, model.peers[idx]);
     }
     model.peers = peers;
@@ -203,7 +210,6 @@ Models.RoomCollection = BaseModule.extend({
 Models.Contact = BaseModel.extend({
   initialize: function() {
     this.set('rooms', new Models.RoomCollection());
-    this.set('attachments', new Models.AttachmentCollection());
   },
 }, {
   parseModel: function (app, model) {
@@ -219,8 +225,20 @@ Models.ContactCollection = BaseModule.extend({
     createByPeer: function (app, peer) {
       return this.parseModel(app, {
         id: peer.id,
-        nickName: peer.nickName
+        nickName: peer.nickName,
+        personalities: {[peer.accountServiceId]: {
+          id: peer.id,
+          nickName: peer.nickName
+        }}
       })
+    },
+
+    getContactByPeer: function (app, peer) {
+      let contact = this.findWhere({[["personalities", peer.accountServiceId, "id"].join('.')]: peer.id});
+      if (contact) {
+        return contact;
+      }
+      return this.createByPeer(app, peer);
     }
 });
 
