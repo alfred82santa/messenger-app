@@ -71,6 +71,8 @@ i {
 .profile img {
     height: 40px;
     margin: 10px;
+    padding-right: 15px;
+    padding-left: 15px;
     border-radius: 50%;
 }
 
@@ -79,7 +81,11 @@ i {
 }
 
 h3.company-name {
-  font-size: 15px;
+    font-size: 15px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    padding-left: 15px;
+    padding-right: 15px;
 }
 
 .icons {
