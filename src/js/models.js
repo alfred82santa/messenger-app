@@ -166,6 +166,9 @@ Models.Room = BaseModel.extend({
     d = Date.parse(d.join('T'));
     model.sorting = -d;
 
+    model.active = false;
+    model.unread = 0;
+
     return new this(model);
   }
 });
@@ -288,8 +291,8 @@ Models.App = Backbone.Model.extend({
       case "room":
         this.get('rooms').dispatch(this, res.join('.'), rmc.params);
         break;
-        default:
-          console.log('Unknown methood: ' + rmc.method);
+      default:
+        console.log('Unknown methood: ' + rmc.method);
     }
   },
 
