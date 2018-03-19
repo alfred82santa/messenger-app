@@ -6,6 +6,7 @@ import $ from 'jquery';
 class BaseBackboneComponent extends React.Component {
   constructor(props) {
     super(props);
+    this.state = {};
     this.handleChange = this.handleChange.bind(this);
   }
 
@@ -52,16 +53,23 @@ class Message extends BaseBackboneModelComponent {
 }
 
 class RoomItemList extends BaseBackboneModelComponent {
-
+  renderUnread() {
+    if (this.props.model.get('unread') > 0) {
+      return <span className="badge badge-pill badge-primary">{this.props.model.get('unread')}</span>
+    }
+  }
   render() {
     return (
-      <div className={[
-        "room-inner",
-        "room-inner-id-" + this.props.model.get('id')
-      ].join(' ')}>
-      <h4>{this.props.model.get('title')}</h4>
-      <time>{this.props.model.get('lastMessageTimestamp')}</time>
-      </div>
+      <ListGroupItem className={[
+                     "room",
+                     "room-id-" + this.props.model.get('id'),
+                     this.props.model.get('active')? "active-room": ""
+                   ].join(' ')}
+                   onClick={() => this.props.onClick()}>
+         <h4>{this.props.model.get('title')}{this.renderUnread()}</h4>
+         <time>{this.props.model.get('lastMessageTimestamp')}</time>
+      </ListGroupItem>
+
     )
   }
 }
@@ -107,19 +115,19 @@ class ChatView extends React.Component {
 
   componentWillUpdate(nextProps, nextState) {
     if (this.state.room != null) {
-      this.state.room.off('change', this.handleChange);
+      this.state.room.off('change', this.handleChange, this);
     }
   }
 
   componentDidUpdate(prevProps, prevState) {
     if (this.state.room != null) {
-      this.state.room.on('change', this.handleChange);
+      this.state.room.on('change', this.handleChange, this);
     }
   }
 
   componentWillUnmount() {
     if (this.state.room != null) {
-      this.state.room.off('change', this.handleChange);
+      this.state.room.off('change', this.handleChange, this);
     }
   }
 
@@ -158,7 +166,15 @@ class ChatView extends React.Component {
   }
 
   setRoom(room) {
+    if (this.state.room == room) {
+      return;
+    }
     this.setState((prevState, props) => {
+      if (prevState['room']) {
+        prevState['room'].set({'active': false});
+      }
+      room.set({'active': true});
+
       return {"room": room};
     });
   }
@@ -206,11 +222,7 @@ class UserMeInfo extends BaseBackboneModelComponent {
 class RoomListView extends BaseBackboneCollectionComponent {
   renderRooms() {
     return this.props.collection.map((room) => {
-      return (<ListGroupItem key={"room-list-item" + room.id}
-                     className={["room", "room-id-" + room.id].join(' ')}
-                     onClick={() => this.props.onSetRoom(room)}>
-                     <RoomItemList model={room} />
-               </ListGroupItem>)
+      return (<RoomItemList model={room} key={"room-list-id-" + room.get('id')} onClick={() => this.props.onSetRoom(room)}/>)
     });
   }
   render() {
