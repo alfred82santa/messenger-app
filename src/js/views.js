@@ -61,13 +61,20 @@ class RoomItemList extends BaseBackboneModelComponent {
   render() {
     return (
       <ListGroupItem className={[
+                     "contact",
                      "room",
                      "room-id-" + this.props.model.get('id'),
                      this.props.model.get('active')? "active-room": ""
                    ].join(' ')}
                    onClick={() => this.props.onClick()}>
-         <h4>{this.props.model.get('title')}{this.renderUnread()}</h4>
-         <time>{this.props.model.get('lastMessageTimestamp')}</time>
+         <img src={"/src/assets/icon-generic.png"}/>
+        <div className="contact-preview">
+          <div className="contact-text">
+            <h4>{this.props.model.get('title')}{this.renderUnread()}</h4>
+          </div>
+          <time>{this.props.model.get('lastMessageTimestamp')}</time>
+
+        </div>
       </ListGroupItem>
 
     )
