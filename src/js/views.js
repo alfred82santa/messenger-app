@@ -1,6 +1,7 @@
 import React from 'react';
 import { Row, ListGroup, ListGroupItem } from 'reactstrap';
 import $ from 'jquery';
+import camelCaseToDash from './util.js';
 
 
 class BaseBackboneComponent extends React.Component {
@@ -45,6 +46,7 @@ class Message extends BaseBackboneModelComponent {
       <div className={[
         "message-inner",
         "message-inner-id-" + this.props.model.get('id'),
+        "message-type-" + camelCaseToDash(this.props.model.get('type')),
         this.props.model.get('sender')? "service-type-" + this.props.model.get('sender').get('serviceType'):""
       ].join(' ')}>
       <p>{this.props.model.get("text")}</p>

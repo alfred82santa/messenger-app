@@ -99,8 +99,6 @@ Models.Message = BaseModel.extend({
     delete model.attachmentsSnapshots;
     model.attachments = attachments;
 
-
-
     // Workaround: datetime must come as timestamps.
     let d = model.postTimestamp.split(" ");
     d[0] = d[0].split('-').reverse().join('-');
