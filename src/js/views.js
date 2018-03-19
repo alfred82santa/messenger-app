@@ -1,5 +1,6 @@
 import React from 'react';
-import { Container, Row, Col, ListGroup, ListGroupItem } from 'reactstrap';
+import { Row, ListGroup, ListGroupItem } from 'reactstrap';
+import $ from 'jquery';
 
 
 class BaseBackboneComponent extends React.Component {
@@ -27,11 +28,13 @@ class BaseBackboneCollectionComponent extends BaseBackboneComponent {
   componentDidMount() {
     this.props.collection.on('add', this.handleChange);
     this.props.collection.on('remove', this.handleChange);
+    this.props.collection.on('sort', this.handleChange);
   }
 
   componentWillUnmount() {
     this.props.collection.off('add', this.handleChange);
     this.props.collection.off('remove', this.handleChange);
+    this.props.collection.off('sort', this.handleChange);
   }
 }
 
@@ -120,6 +123,20 @@ class ChatView extends React.Component {
     }
   }
 
+  sendText(text) {
+    if (this.state.room != null) {
+      this.state.room.sendText(text);
+    }
+  }
+
+  onKeyUp(ev) {
+    if (ev.which === 13 || ev.keyCode === 13) {
+      let text = $(ev.target).val();
+      $(ev.target).val('');
+      this.sendText(text);
+    }
+  }
+
   render() {
     if (this.state.room == null) {
       return (
@@ -133,7 +150,7 @@ class ChatView extends React.Component {
         <RoomMessageView className="align-self-stretch" collection={this.state.room.get('messages')} />
         <div className="wrap-message">
         <div className="message">
-            <input type="text" className="input-message" placeholder="Escribe tu mensaje"/>
+            <input type="text" className="input-message" onKeyUp={(ev) => this.onKeyUp(ev)} placeholder="Escribe tu mensaje"/>
         </div>
       </div>
       </Row>
