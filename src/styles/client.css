@@ -396,7 +396,7 @@ h3.company-name {
     color: #FF8811;
 }
 
-.wrap-message {
+.wrap-send-message {
     width: 100%;
     height: 80px;
     background: #808B97;
@@ -404,7 +404,7 @@ h3.company-name {
     padding: 10px;
 }
 
-.message {
+.send-message {
   width: 100%;
   height: 45px;
   background: #ffffff;

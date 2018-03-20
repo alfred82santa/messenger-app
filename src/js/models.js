@@ -54,6 +54,7 @@ Models.PeerCollection = BaseModelCollection.extend({
 Models.Attachment = BaseModel.extend({}, {
   parseModel: function (app, model) {
     model.account = app.get('accounts').parseModel(app, model.accountSnapshot);
+    model.mainUrl = 'https://' + app.get('backendUrl') + '/attachment/' + model.id + '/download';
     delete model.accountSnapshot;
     return new this(model);
   }
@@ -63,11 +64,7 @@ Models.AttachmentCollection = BaseModule.extend({
   model: Models.Attachment
 });
 
-Models.Message = BaseModel.extend({
-  initialize: function() {
-    this.set('attachments', new Models.AttachmentCollection());
-  }
-}, {
+Models.Message = BaseModel.extend({}, {
   parseModel: function (app, model) {
     model.room = app.get('rooms').parseModel(app, model.roomSnapshot);
     delete model.roomSnapshot.senderSnapshot;
