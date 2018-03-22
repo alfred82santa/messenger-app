@@ -4,6 +4,7 @@ import {ListGroup, ListGroupItem} from 'reactstrap';
 import $ from 'jquery';
 import camelCaseToDash from './util.js';
 import Lightbox from 'react-images';
+import {format} from 'libphonenumber-js'
 
 class BaseBackboneComponent extends React.Component {
   constructor(props) {
@@ -132,9 +133,8 @@ class AttachmentList extends BaseBackboneCollectionComponent {
           {this.renderAttachments()}
         </div>
       )
-    } else {
-      return "";
     }
+    return "";
   }
 }
 
@@ -143,12 +143,27 @@ class Message extends BaseMessage {
     return super.getClassNames().concat(['message']);
   }
 
+  renderPhone() {
+    if (this.props.model.get("sender").get('contact')
+        && this.props.model.get("sender").get('contact').get('telephones')
+        && this.props.model.get("sender").get('contact').get('telephones').length) {
+      return "(" + format(
+        "+" + this.props.model.get("sender").get('contact').get('telephones')[0].number,
+        "International"
+      ) + ")";
+    }
+    return "";
+  }
+
   render() {
     return (
       <div className={this.getClassNames().join(' ')}>
+        <MessageSenderContact model={this.props.model.get("sender").get('contact')}/>
         <div className="bubble">
           <div className="content">
-            <h4 className="nick-name">{this.props.model.get("sender").get('nickName')}</h4>
+            <h4 className="nick-name">{this.props.model.get("sender").get('contact').get('nickName')}
+              <span className="phone">{this.renderPhone()}</span>
+            </h4>
             <div className="clearfix"/>
             <AttachmentList collection={this.props.model.get("attachments")} />
             <div className="text">{this.props.model.get("text")}</div>
@@ -159,6 +174,19 @@ class Message extends BaseMessage {
         </div>
       </div>
     )
+  }
+}
+
+class MessageSenderContact extends BaseBackboneModelComponent {
+  render() {
+    if (this.props.model.get('photo_snapshot')) {
+      return (
+        <div className="profile">
+          <img src={this.props.model.get('photo_snapshot').get('url')} alt=""></img>
+        </div>
+      )
+    }
+    return "";
   }
 }
 
@@ -190,7 +218,7 @@ class RoomItemList extends BaseBackboneModelComponent {
                      this.props.model.get('active')? "active-room": ""
                    ].join(' ')}
                    onClick={() => this.props.onClick()}>
-         <img src={"/src/assets/icon-generic.png"}/>
+         <img src="/assets/icon-generic.png"/>
         <div className="contact-preview">
           <div className="contact-text">
             <h4>{this.props.model.get('title')}{this.renderUnread()}</h4>
@@ -202,7 +230,6 @@ class RoomItemList extends BaseBackboneModelComponent {
     )
   }
 }
-
 
 class RoomMessageView extends BaseBackboneCollectionComponent {
 
@@ -402,7 +429,7 @@ class UserMeInfo extends React.Component {
     return (
       <div className={"profile me"}>
           <div className={"profile-data row"}>
-              <img className={"logo col-xs-4"} src={"/src/assets/logo.png"} alt=""/>
+              <img className={"logo col-xs-4"} src="/assets/logo.png" alt=""/>
               {/*TODO use this.props.model.get("UserName") instead of the hardocded name as soon as BE provides it*/}
               <h3 className={"company-name cols-xs-4"}>Farmacia Maragall 177</h3>
           </div>

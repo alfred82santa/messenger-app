@@ -5,6 +5,8 @@ import WS from './websocket.js';
 
 var Models = {};
 
+var audio_file = new Audio("/assets/new_message.mp3");
+
 var BaseModel = Backbone.Model.extend({}, {
   parseModel: function (app, model) {
     return new this(model);
@@ -54,7 +56,7 @@ Models.PeerCollection = BaseModelCollection.extend({
 Models.Attachment = BaseModel.extend({}, {
   parseModel: function (app, model) {
     model.account = app.get('accounts').parseModel(app, model.accountSnapshot);
-    model.mainUrl = 'https://' + app.get('backendUrl') + '/attachment/' + model.id + '/download';
+    model.mainUrl = app.getUrl('/attachment/' + model.id + '/download');
     delete model.accountSnapshot;
     return new this(model);
   }
@@ -102,6 +104,10 @@ Models.Message = BaseModel.extend({}, {
     d = Date.parse(d.join('T'));
     model.sorting = d;
 
+    if (!model.read) {
+      model.read = false;
+    }
+
     return new this(model);
   }
 });
@@ -121,14 +127,31 @@ Models.Room = BaseModel.extend({
         self.set('sorting', -item.get('sorting'));
         self.set('lastMessageTimestamp', item.get('postTimestamp'));
       }
+      if (self.get('active')) {
+        item.set('read', new Date());
+      }
+      self.set('unread', self.get('messages').where({'read': false}).length);
+
+      audio_file.play();
+    });
+
+    this.on('change:active', function() {
+      if (self.get('active')) {
+        let msgs = self.get('messages').where({'read': false});
+        for (let i in msgs) {
+          msgs[i].set('read', new Date());
+        }
+        self.set('unread', self.get('messages').where({'read': false}).length);
+      }
     });
   },
   retrieveMessages: function (app) {
     $.ajax({
-      url: 'https://' + app.get('backendUrl') + '/rest/room/' + this.id + '/message?limit=20',
+      url: app.getUrl('/rest/room/' + this.id + '/message', false, "limit=20"),
       method: 'GET'
     }).done((data) => {
       for (let idx in data.messages) {
+        data.messages[idx].read = new Date();
         app.get('messages').parseModel(app, data.messages[idx]);
       }
     });
@@ -191,7 +214,7 @@ Models.RoomCollection = BaseModule.extend({
   start: function (app) {
     var self = this;
     $.ajax({
-      url: 'https://' + app.get('backendUrl') + '/rest/room',
+      url: app.getUrl('/rest/room'),
       method: 'GET'
     }).done((data) => {
       for (let idx in data.rooms) {
@@ -205,12 +228,16 @@ Models.RoomCollection = BaseModule.extend({
 Models.Contact = BaseModel.extend({
   initialize: function() {
     this.set('rooms', new Models.RoomCollection());
-  },
+  }
 }, {
   parseModel: function (app, model) {
     //console.log(model);
     //model.account = app.get('accounts').parseModel(app, model.accountSnapshot);
     //delete model.accountSnapshot;
+    for (let connId in model.personalities) {
+      let key = ["personalities", connId, "contactId"].join('_');
+      model[key] = model.personalities[connId].contactId;
+    }
     return new this(model);
   }
 });
@@ -229,11 +256,27 @@ Models.ContactCollection = BaseModule.extend({
     },
 
     getContactByPeer: function (app, peer) {
-      let contact = this.findWhere({[["personalities", peer.accountServiceId, "id"].join('.')]: peer.id});
+      let contact = this.findWhere({[["personalities", peer.accountServiceId, "contactId"].join('_')]: peer.id});
       if (contact) {
         return contact;
       }
       return this.createByPeer(app, peer);
+    },
+
+    start: function (app, done) {
+      var self = this;
+      $.ajax({
+        url: app.getUrl('/rest/contact'),
+        method: 'GET'
+      }).done((data) => {
+        for (let idx in data.contacts) {
+          self.parseModel(app, data.contacts[idx]);
+        }
+
+        if (done) {
+          done();
+        }
+      });
     }
 });
 
@@ -297,6 +340,23 @@ Models.App = Backbone.Model.extend({
     })
   },
 
+  getUrl: function (path, websocket, query) {
+    let url = new URL(this.get('backendUrl'));
+    url.pathname = path;
+
+    if (websocket) {
+      if (url.protocol === 'https:') {
+        url.protocol = 'wss:';
+      } else {
+        url.protocol = 'ws:';
+      }
+    }
+    if (query) {
+      url.search = query;
+    }
+    return url.href;
+  },
+
   dispatch: function (sender, rmc) {
     let res = rmc.method.split('.');
 
@@ -310,9 +370,9 @@ Models.App = Backbone.Model.extend({
   },
 
   start: function () {
-    this.set('websocket', new WS(this.get('backendUrl') + '/websocket'));
+    this.set('websocket', new WS(this.getUrl('/websocket', true)));
     $(this.get('websocket')).on('message', this.dispatch.bind(this));
-    this.get('rooms').start(this);
+    this.get('contacts').start(this, () => this.get('rooms').start(this));
   }
 });
 
