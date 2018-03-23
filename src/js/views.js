@@ -4,6 +4,7 @@ import {ListGroup, ListGroupItem} from 'reactstrap';
 import $ from 'jquery';
 import camelCaseToDash from './util.js';
 import Lightbox from 'react-images';
+import {format} from 'libphonenumber-js'
 
 class BaseBackboneComponent extends React.Component {
   constructor(props) {
@@ -15,29 +16,72 @@ class BaseBackboneComponent extends React.Component {
   handleChange() {
     this.forceUpdate();
   }
+
+  componentDidCatch(error, info) {
+    console.log(error);
+    console.log(info);
+  }
+
+  connect(bbComponent) {
+
+  }
+
+  disconnect(bbComponent) {
+
+  }
 }
 
 class BaseBackboneModelComponent extends BaseBackboneComponent {
-  componentDidMount() {
-    this.props.model.on('change', this.handleChange);
+  componentWillMount() {
+    this.connect(this.props.model);
   }
 
   componentWillUnmount() {
-    this.props.model.off('change', this.handleChange);
+    this.disconnect(this.props.model);
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (this.props.model !== nextProps.model) {
+      this.disconnect(this.props.model);
+      this.connect(nextProps.model);
+    }
+  }
+
+  connect(bbComponent) {
+    bbComponent.on('change', this.handleChange, this);
+  }
+
+  disconnect(bbComponent) {
+    bbComponent.off('change', this.handleChange, this);
   }
 }
 
 class BaseBackboneCollectionComponent extends BaseBackboneComponent {
-  componentDidMount() {
-    this.props.collection.on('add', this.handleChange);
-    this.props.collection.on('remove', this.handleChange);
-    this.props.collection.on('sort', this.handleChange);
+  componentWillMount() {
+    this.connect(this.props.collection);
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (this.props.collection !== nextProps.collection) {
+      this.disconnect(this.props.collection);
+      this.connect(nextProps.collection);
+    }
   }
 
   componentWillUnmount() {
-    this.props.collection.off('add', this.handleChange);
-    this.props.collection.off('remove', this.handleChange);
-    this.props.collection.off('sort', this.handleChange);
+    this.disconnect(this.props.collection);
+  }
+
+  connect(bbComponent) {
+    bbComponent.on('add', this.handleChange, this);
+    bbComponent.on('remove', this.handleChange, this);
+    bbComponent.on('sort', this.handleChange, this);
+  }
+
+  disconnect(bbComponent) {
+    bbComponent.off('add', this.handleChange, this);
+    bbComponent.off('remove', this.handleChange, this);
+    bbComponent.off('sort', this.handleChange, this);
   }
 }
 
@@ -132,9 +176,8 @@ class AttachmentList extends BaseBackboneCollectionComponent {
           {this.renderAttachments()}
         </div>
       )
-    } else {
-      return "";
     }
+    return "";
   }
 }
 
@@ -143,15 +186,38 @@ class Message extends BaseMessage {
     return super.getClassNames().concat(['message']);
   }
 
+  renderPhone() {
+    if (this.props.model.get("sender").get('contact')
+        && this.props.model.get("sender").get('contact').get('telephones')
+        && this.props.model.get("sender").get('contact').get('telephones').length) {
+      return "(" + format(
+        "+" + this.props.model.get("sender").get('contact').get('telephones')[0].number,
+        "International"
+      ) + ")";
+    }
+    return "";
+  }
+
+  renderText() {
+    if (this.props.model.get("text")) {
+      let parts = this.props.model.get("text").split("\n");
+      return parts.map((part, idx) => <p key={this.props.model.get("id") + "-" +idx}>{part}</p>);
+    }
+    return "";
+  }
+
   render() {
     return (
       <div className={this.getClassNames().join(' ')}>
+        <MessageSenderContact model={this.props.model.get("sender").get('contact')}/>
         <div className="bubble">
           <div className="content">
-            <h4 className="nick-name">{this.props.model.get("sender").get('nickName')}</h4>
+            <h4 className="nick-name">{this.props.model.get("sender").get('contact').get('nickName')}
+              <span className="phone">{this.renderPhone()}</span>
+            </h4>
             <div className="clearfix"/>
             <AttachmentList collection={this.props.model.get("attachments")} />
-            <div className="text">{this.props.model.get("text")}</div>
+            <div className="text">{this.renderText()}</div>
             <div className="time">{this.props.model.get('postTimestamp')}</div>
             <div className="clearfix"/>
           </div>
@@ -159,6 +225,31 @@ class Message extends BaseMessage {
         </div>
       </div>
     )
+  }
+}
+
+class MessageSenderContact extends BaseBackboneModelComponent {
+  render() {
+    if (this.props.model.get('photo')) {
+      return (
+        <div className="profile">
+          <Lightbox
+            images={[
+              { src: this.props.model.get('photo').get('mainUrl') }
+            ]}
+            isOpen={this.state.lightboxIsOpen}
+            onClose={() => this.setState({lightboxIsOpen: false})}
+          />
+          <img
+            className="photo"
+            src={this.props.model.get('photo').get('mainUrl')}
+            alt=""
+            onClick={() => this.setState({lightboxIsOpen: true})}
+          />
+        </div>
+      )
+    }
+    return "";
   }
 }
 
@@ -190,7 +281,7 @@ class RoomItemList extends BaseBackboneModelComponent {
                      this.props.model.get('active')? "active-room": ""
                    ].join(' ')}
                    onClick={() => this.props.onClick()}>
-         <img src={"/src/assets/icon-generic.png"}/>
+         <img src="/assets/icon-generic.png"/>
         <div className="contact-preview">
           <div className="contact-text">
             <h4>{this.props.model.get('title')}{this.renderUnread()}</h4>
@@ -203,7 +294,6 @@ class RoomItemList extends BaseBackboneModelComponent {
   }
 }
 
-
 class RoomMessageView extends BaseBackboneCollectionComponent {
 
   constructor(props) {
@@ -215,7 +305,7 @@ class RoomMessageView extends BaseBackboneCollectionComponent {
   }
 
   componentDidMount() {
-    super.componentDidMount();
+    this.setState((prevState, props) => { return {'follow': true};});
     this.followMessages();
     let $this = $(ReactDOM.findDOMNode(this));
     let self = this;
@@ -233,7 +323,7 @@ class RoomMessageView extends BaseBackboneCollectionComponent {
     });
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps, prevState) {
     if (this.state.follow) {
       this.followMessages();
     }
@@ -245,13 +335,17 @@ class RoomMessageView extends BaseBackboneCollectionComponent {
   }
 
   renderMessages() {
-    return this.props.collection.map((message) => {
-      if (message.get('type') === 'message') {
-        return <Message model={message} key={message.id}/>;
-      } else {
-        return <ChatNotification model={message} key={message.id}/>;
-      }
-    });
+    if (this.props.collection.length) {
+      return this.props.collection.map((message) => {
+        if (message.get('type') === 'message') {
+          return <Message model={message} key={message.id}/>;
+        } else {
+          return <ChatNotification model={message} key={message.id}/>;
+        }
+      });
+    } else {
+      return <div className="loading"></div>;
+    }
   }
 
   renderUnread() {
@@ -402,7 +496,7 @@ class UserMeInfo extends React.Component {
     return (
       <div className={"profile me"}>
           <div className={"profile-data row"}>
-              <img className={"logo col-xs-4"} src={"/src/assets/logo.png"} alt=""/>
+              <img className={"logo col-xs-4"} src="/assets/logo.png" alt=""/>
               {/*TODO use this.props.model.get("UserName") instead of the hardocded name as soon as BE provides it*/}
               <h3 className={"company-name cols-xs-4"}>Farmacia Maragall 177</h3>
           </div>

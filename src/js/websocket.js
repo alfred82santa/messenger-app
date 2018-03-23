@@ -11,7 +11,6 @@ export default class WS {
     if (rmc.referenceId === undefined) {
         rmc.referenceId = this.getNextId();
     }
-    console.log(rmc);
     this._ws.send(JSON.stringify(rmc));
     $(this).trigger('post', rmc);
   }
@@ -52,7 +51,7 @@ export default class WS {
 
   constructor(url: string) {
     this._nextId = 0;
-    this.url = 'wss://' + url;
+    this.url = url;
     this.connect();
   }
 }
