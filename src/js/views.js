@@ -16,29 +16,72 @@ class BaseBackboneComponent extends React.Component {
   handleChange() {
     this.forceUpdate();
   }
+
+  componentDidCatch(error, info) {
+    console.log(error);
+    console.log(info);
+  }
+
+  connect(bbComponent) {
+
+  }
+
+  disconnect(bbComponent) {
+
+  }
 }
 
 class BaseBackboneModelComponent extends BaseBackboneComponent {
-  componentDidMount() {
-    this.props.model.on('change', this.handleChange);
+  componentWillMount() {
+    this.connect(this.props.model);
   }
 
   componentWillUnmount() {
-    this.props.model.off('change', this.handleChange);
+    this.disconnect(this.props.model);
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (this.props.model !== nextProps.model) {
+      this.disconnect(this.props.model);
+      this.connect(nextProps.model);
+    }
+  }
+
+  connect(bbComponent) {
+    bbComponent.on('change', this.handleChange, this);
+  }
+
+  disconnect(bbComponent) {
+    bbComponent.off('change', this.handleChange, this);
   }
 }
 
 class BaseBackboneCollectionComponent extends BaseBackboneComponent {
-  componentDidMount() {
-    this.props.collection.on('add', this.handleChange);
-    this.props.collection.on('remove', this.handleChange);
-    this.props.collection.on('sort', this.handleChange);
+  componentWillMount() {
+    this.connect(this.props.collection);
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (this.props.collection !== nextProps.collection) {
+      this.disconnect(this.props.collection);
+      this.connect(nextProps.collection);
+    }
   }
 
   componentWillUnmount() {
-    this.props.collection.off('add', this.handleChange);
-    this.props.collection.off('remove', this.handleChange);
-    this.props.collection.off('sort', this.handleChange);
+    this.disconnect(this.props.collection);
+  }
+
+  connect(bbComponent) {
+    bbComponent.on('add', this.handleChange, this);
+    bbComponent.on('remove', this.handleChange, this);
+    bbComponent.on('sort', this.handleChange, this);
+  }
+
+  disconnect(bbComponent) {
+    bbComponent.off('add', this.handleChange, this);
+    bbComponent.off('remove', this.handleChange, this);
+    bbComponent.off('sort', this.handleChange, this);
   }
 }
 
@@ -155,6 +198,14 @@ class Message extends BaseMessage {
     return "";
   }
 
+  renderText() {
+    if (this.props.model.get("text")) {
+      let parts = this.props.model.get("text").split("\n");
+      return parts.map((part, idx) => <p key={this.props.model.get("id") + "-" +idx}>{part}</p>);
+    }
+    return "";
+  }
+
   render() {
     return (
       <div className={this.getClassNames().join(' ')}>
@@ -166,7 +217,7 @@ class Message extends BaseMessage {
             </h4>
             <div className="clearfix"/>
             <AttachmentList collection={this.props.model.get("attachments")} />
-            <div className="text">{this.props.model.get("text")}</div>
+            <div className="text">{this.renderText()}</div>
             <div className="time">{this.props.model.get('postTimestamp')}</div>
             <div className="clearfix"/>
           </div>
@@ -179,10 +230,22 @@ class Message extends BaseMessage {
 
 class MessageSenderContact extends BaseBackboneModelComponent {
   render() {
-    if (this.props.model.get('photo_snapshot')) {
+    if (this.props.model.get('photo')) {
       return (
         <div className="profile">
-          <img src={this.props.model.get('photo_snapshot').get('url')} alt=""></img>
+          <Lightbox
+            images={[
+              { src: this.props.model.get('photo').get('mainUrl') }
+            ]}
+            isOpen={this.state.lightboxIsOpen}
+            onClose={() => this.setState({lightboxIsOpen: false})}
+          />
+          <img
+            className="photo"
+            src={this.props.model.get('photo').get('mainUrl')}
+            alt=""
+            onClick={() => this.setState({lightboxIsOpen: true})}
+          />
         </div>
       )
     }
@@ -242,7 +305,7 @@ class RoomMessageView extends BaseBackboneCollectionComponent {
   }
 
   componentDidMount() {
-    super.componentDidMount();
+    this.setState((prevState, props) => { return {'follow': true};});
     this.followMessages();
     let $this = $(ReactDOM.findDOMNode(this));
     let self = this;
@@ -260,7 +323,7 @@ class RoomMessageView extends BaseBackboneCollectionComponent {
     });
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps, prevState) {
     if (this.state.follow) {
       this.followMessages();
     }
@@ -272,13 +335,17 @@ class RoomMessageView extends BaseBackboneCollectionComponent {
   }
 
   renderMessages() {
-    return this.props.collection.map((message) => {
-      if (message.get('type') === 'message') {
-        return <Message model={message} key={message.id}/>;
-      } else {
-        return <ChatNotification model={message} key={message.id}/>;
-      }
-    });
+    if (this.props.collection.length) {
+      return this.props.collection.map((message) => {
+        if (message.get('type') === 'message') {
+          return <Message model={message} key={message.id}/>;
+        } else {
+          return <ChatNotification model={message} key={message.id}/>;
+        }
+      });
+    } else {
+      return <div className="loading"></div>;
+    }
   }
 
   renderUnread() {

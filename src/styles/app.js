@@ -81,6 +81,19 @@ export default StyleSheet.create({
   'chat messageserv-session content h4': {
     display: 'none'
   },
+  'chat message profile': {
+    position: 'absolute',
+    background: 'transparent',
+    bottom: [{ unit: 'px', value: 0 }],
+    left: [{ unit: 'px', value: -60 }],
+    width: [{ unit: 'string', value: 'auto' }],
+    height: [{ unit: 'string', value: 'auto' }],
+    border: [{ unit: 'string', value: 'none' }]
+  },
+  'chat message profile img': {
+    margin: [{ unit: 'px', value: 0 }, { unit: 'px', value: 0 }, { unit: 'px', value: 0 }, { unit: 'px', value: 0 }],
+    padding: [{ unit: 'px', value: 0 }, { unit: 'px', value: 0 }, { unit: 'px', value: 0 }, { unit: 'px', value: 0 }]
+  },
   'chat message bubble': {
     borderRadius: '7px',
     boxShadow: [{ unit: 'px', value: 0 }, { unit: 'px', value: 2 }, { unit: 'px', value: 2 }, { unit: 'string', value: 'rgba(0, 0, 0, 0.05)' }],
@@ -117,6 +130,9 @@ export default StyleSheet.create({
   },
   'chat message content text': {
     textAlign: 'left'
+  },
+  'chat message content text p': {
+    margin: [{ unit: 'px', value: 0 }, { unit: 'px', value: 0 }, { unit: 'px', value: 0 }, { unit: 'px', value: 0 }]
   },
   'chat message content time': {
     color: 'rgba(0, 0, 0, 0.4)',

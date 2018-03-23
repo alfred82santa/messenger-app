@@ -127,12 +127,18 @@ Models.Room = BaseModel.extend({
         self.set('sorting', -item.get('sorting'));
         self.set('lastMessageTimestamp', item.get('postTimestamp'));
       }
-      if (self.get('active')) {
-        item.set('read', new Date());
-      }
-      self.set('unread', self.get('messages').where({'read': false}).length);
 
-      audio_file.play();
+      if (!item.get('read')) {
+        let lastRead = self.get('messages').find((it) => it.get("read"));
+
+        if (self.get('active') || (lastRead && lastRead.get('sorting') < item.get('sorting'))) {
+          item.set('read', new Date());
+        } else {
+          audio_file.play();
+        }
+      }
+
+      self.set('unread', self.get('messages').where({'read': false}).length);
     });
 
     this.on('change:active', function() {
@@ -142,6 +148,10 @@ Models.Room = BaseModel.extend({
           msgs[i].set('read', new Date());
         }
         self.set('unread', self.get('messages').where({'read': false}).length);
+      }
+      if (self.get('needLoad')) {
+        self.get('needLoad')();
+        self.get('needLoad', false);
       }
     });
   },
@@ -194,7 +204,15 @@ Models.Room = BaseModel.extend({
     model.active = false;
     model.unread = 0;
 
-    return new this(model);
+    var obj = new this(model);
+
+    if (model.needLoad) {
+      obj.set("needLoad", () => obj.retrieveMessages(app));
+    } else {
+      obj.set("needLoad", false);
+    }
+
+    return obj;
   }
 });
 
@@ -218,8 +236,8 @@ Models.RoomCollection = BaseModule.extend({
       method: 'GET'
     }).done((data) => {
       for (let idx in data.rooms) {
-        let model = self.parseModel(app, data.rooms[idx]);
-        model.retrieveMessages(app);
+        data.rooms[idx].needLoad = true;
+        self.parseModel(app, data.rooms[idx]);
       }
     });
   }
@@ -231,9 +249,16 @@ Models.Contact = BaseModel.extend({
   }
 }, {
   parseModel: function (app, model) {
-    //console.log(model);
-    //model.account = app.get('accounts').parseModel(app, model.accountSnapshot);
-    //delete model.accountSnapshot;
+    if (model.accountSnapshot) {
+      model.account = app.get('accounts').parseModel(app, model.accountSnapshot);
+      delete model.accountSnapshot;
+
+    }
+
+    if (model.photoSnapshot) {
+      model.photo = app.get('attachments').parseModel(app, model.photoSnapshot);
+      delete model.photoSnapshot;
+    }
     for (let connId in model.personalities) {
       let key = ["personalities", connId, "contactId"].join('_');
       model[key] = model.personalities[connId].contactId;
